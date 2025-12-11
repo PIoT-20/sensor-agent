@@ -1,4 +1,4 @@
-import numpy as np
+import pandas as pd
 
 from BaseAgent import BaseSensorAgent
 
@@ -18,5 +18,6 @@ class ExampleAgent(BaseSensorAgent):
         if not readings:
             return 0.0
         
-        average_reading = np.mean(readings)
-        return float(average_reading)
+        readings_df = pd.DataFrame(readings)
+        average_reading = readings_df['value'].mean()
+        return average_reading
