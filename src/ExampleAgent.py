@@ -19,4 +19,4 @@ class ExampleAgent(BaseSensorAgent):
             return 0.0
         
         average_reading = np.mean(readings)
-        return average_reading
+        return float(average_reading)
