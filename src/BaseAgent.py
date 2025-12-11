@@ -1,36 +1,50 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any
 import json
+import cherrypy
+import os
 
 class BaseSensorAgent(ABC):
     """
     The core agent that handles connections, loops, and error handling.
     Developers must inherit from this class.
     """
+    exposed = True
 
     def __init__(self, config_file: str) -> None:
         """Initializes connection parameters from config."""
         with open(config_file, 'r') as file:
             self.config = json.load(file)
-        pass
+
+        cherrypy_conf={
+            '/':{
+                'request.dispatch':cherrypy.dispatch.MethodDispatcher(),
+                'tools.staticdir.root': os.path.abspath(os.getcwd()),
+                'tools.sessions.on': True,
+            },
+            '/api': {
+                'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
+            }
+        }
+        cherrypy.tree.mount(self, '/process_readings', cherrypy_conf)
 
     def run(self) -> None:
-        """
-        The MAIN LOOP (Hidden from developer).
-        1. Connects to source.
-        2. Loops: _fetch_data() -> process_data() -> _publish_result()
-        """
-        pass
+        cherrypy.engine.start()
+        cherrypy.engine.block()
     
     def register(self) -> None:
         """Registers the agent within the IoT platform."""
         pass
 
-    def rec_post(self, payload) -> Dict:
-        """Receives POST requests with data payloads."""
-        readings = payload.get('readings', [])
-        ret = self.process_readings(readings)
-        return {'result': ret}
+    @cherrypy.tools.json_out()
+    @cherrypy.tools.json_in()
+    def POST(self, *uri, **params):
+        try:
+            readings = cherrypy.request.json.get('readings', [])
+            ret = self.process_readings(readings)
+            return {'quality_index': ret}
+        except Exception as e:
+            raise cherrypy.HTTPError(500, str(e))
 
     @abstractmethod
     def process_readings(self, readings: list) -> float:
