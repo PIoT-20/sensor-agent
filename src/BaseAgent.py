@@ -11,17 +11,18 @@ class BaseSensorAgent(ABC):
     Developers must inherit from this class.
     """
 
-    POST_BODY_SCHEMA = {
+    SENSOR_DATA_SCHEMA = {
         "type": "object",
         "required": ["readings"],
         "properties": {
             "readings": {
                 "type": "array", 
                 "items": {
+                    "type": "object", 
                     "required": ["timestamp", "value"],
-                    "type": "object", "properties": {
+                    "properties": {
                         "timestamp": {"type": "string", "format": "date-time"},
-                        "value": {"type": "number"},
+                        "value": {"type": "object"},
                     }
                 }
             }
@@ -61,8 +62,9 @@ class BaseSensorAgent(ABC):
     @cherrypy.tools.json_in() # type: ignore
     def POST(self, *uri, **params):
         try:
-            validate(instance=cherrypy.request.json, schema=self.POST_BODY_SCHEMA)
+            validate(instance=cherrypy.request.json, schema=self.SENSOR_DATA_SCHEMA)
             readings = cherrypy.request.json.get('readings', [])
+            
             ret = self.process_readings(readings)
             return {'quality_index': ret}
         
