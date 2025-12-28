@@ -11,6 +11,9 @@ class EUOSHAHeatAgent(BaseSensorAgent):
     
     Inherits from BaseSensorAgent.
     """
+
+    baseline = 20.0  # Score 0
+    limit = 25.0     # Score 1
     
     def __init__(self, config_file: str) -> None:
         super().__init__(config_file)
@@ -47,13 +50,9 @@ class EUOSHAHeatAgent(BaseSensorAgent):
                (readings_df['timestamp'].dt.dayofweek < 5)
         shift_readings_df = readings_df[mask]
 
-
-        baseline = 20.0  # Score 0
-        limit = 25.0     # Score 1
-
         shift_readings_df['WBGT'] = 0.7 * shift_readings_df['Tnw'] + 0.3 * shift_readings_df['Tg']
 
-        shift_readings_df['risk_ratio'] = (shift_readings_df['WBGT'] - baseline) / (limit - baseline)
+        shift_readings_df['risk_ratio'] = (shift_readings_df['WBGT'] - self.baseline) / (self.limit - self.baseline)
         shift_readings_df['risk_ratio'] = shift_readings_df['risk_ratio'].clip(lower=0)
 
         score = shift_readings_df['risk_ratio'].quantile(0.95)

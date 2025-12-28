@@ -13,6 +13,9 @@ class EUOSHANoiseAgent(BaseSensorAgent):
     It is the 8-hour time-weighted average (TWA).
     Inherits from BaseSensorAgent.
     """
+
+    threshold = 85
+
     def __init__(self, config_file: str) -> None:
         super().__init__(config_file)
 
@@ -53,4 +56,4 @@ class EUOSHANoiseAgent(BaseSensorAgent):
 
         interval_exp_lvl = 10*np.log10((10**(daily_exp_lvl_df['leq']/10)).mean())
 
-        return float(interval_exp_lvl)
+        return float(interval_exp_lvl/self.threshold)
