@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from functools import reduce
 
-from BaseAgent import BaseSensorAgent
+from .BaseAgent import BaseSensorAgent
 
 def average_decibel(series):
     return reduce(lambda x, y: pow(10, 0.1*x) + pow(10, 0.1*y), series)
@@ -16,11 +16,11 @@ class EUOSHANoiseAgent(BaseSensorAgent):
 
     threshold = 85
 
-    def __init__(self, config_file: str) -> None:
-        super().__init__(config_file)
+    def __init__(self) -> None:
+        super().__init__()
 
-        self.SENSOR_DATA_SCHEMA["readings"]["items"]["properties"]["value"]["required"] = ["dB"]
-        self.SENSOR_DATA_SCHEMA["readings"]["items"]["properties"]["value"]["properties"] = {
+        self.SENSOR_DATA_SCHEMA["properties"]["readings"]["items"]["properties"]["value"]["required"] = ["dB"]
+        self.SENSOR_DATA_SCHEMA["properties"]["readings"]["items"]["properties"]["value"]["properties"] = {
             "dB": {"type": "number"}
         }
 
@@ -44,6 +44,9 @@ class EUOSHANoiseAgent(BaseSensorAgent):
                (readings_df['timestamp'].dt.time <= end_time) & \
                (readings_df['timestamp'].dt.dayofweek < 5)
         shift_readings_df = readings_df[mask]
+
+        if shift_readings_df.empty:
+            raise ValueError("No readings during work hours")
 
         shift_readings_df = shift_readings_df.copy()
         shift_readings_df['energy'] = 10 ** (shift_readings_df['dB'] / 10)

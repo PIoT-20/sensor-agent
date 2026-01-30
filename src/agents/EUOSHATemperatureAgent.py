@@ -1,9 +1,9 @@
 import pandas as pd
 import numpy as np
 
-from BaseAgent import BaseSensorAgent
+from .BaseAgent import BaseSensorAgent
 
-class EUOSHAHeatAgent(BaseSensorAgent):
+class EUOSHATemperatureAgent(BaseSensorAgent):
     """
     An agent that processes readings from 2 different temperature sensors:
         - Tnw: Natural Wet Bulb: thermometer covered by a wet cotton wick
@@ -15,11 +15,11 @@ class EUOSHAHeatAgent(BaseSensorAgent):
     baseline = 20.0  # Score 0
     limit = 25.0     # Score 1
     
-    def __init__(self, config_file: str) -> None:
-        super().__init__(config_file)
+    def __init__(self) -> None:
+        super().__init__()
         
-        self.SENSOR_DATA_SCHEMA["readings"]["items"]["properties"]["value"]["required"] = ["dB"]
-        self.SENSOR_DATA_SCHEMA["readings"]["items"]["properties"]["value"]["properties"] = {
+        self.SENSOR_DATA_SCHEMA["properties"]["readings"]["items"]["properties"]["value"]["required"] = ["dB"]
+        self.SENSOR_DATA_SCHEMA["properties"]["readings"]["items"]["properties"]["value"]["properties"] = {
             "Tnw": {"type": "number"},
             "Tg": {"type": "number"}
         }
@@ -43,12 +43,16 @@ class EUOSHAHeatAgent(BaseSensorAgent):
         readings_df['timestamp'] = pd.to_datetime(readings_df['timestamp'])
         readings_df = pd.concat([readings_df.drop(['value'], axis=1), readings_df['value'].apply(pd.Series)], axis=1)
 
+
         start_time = pd.to_datetime("09:00").time()
         end_time = pd.to_datetime("18:00").time()
         mask = (readings_df['timestamp'].dt.time >= start_time) & \
                (readings_df['timestamp'].dt.time <= end_time) & \
                (readings_df['timestamp'].dt.dayofweek < 5)
         shift_readings_df = readings_df[mask]
+
+        if shift_readings_df.empty:
+            raise ValueError("No readings during work shift")
 
         shift_readings_df['WBGT'] = 0.7 * shift_readings_df['Tnw'] + 0.3 * shift_readings_df['Tg']
 

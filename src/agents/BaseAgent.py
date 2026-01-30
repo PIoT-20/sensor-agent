@@ -31,11 +31,7 @@ class BaseSensorAgent(ABC):
 
     exposed = True
 
-    def __init__(self, config_file: str) -> None:
-        """Initializes connection parameters from config."""
-        with open(config_file, 'r') as file:
-            self.config = json.load(file)
-
+    def __init__(self) -> None:
         cherrypy_conf={
             '/':{
             'request.dispatch':cherrypy.dispatch.MethodDispatcher(),
@@ -70,6 +66,8 @@ class BaseSensorAgent(ABC):
         
         except ValidationError as ve:
             raise cherrypy.HTTPError(400, f"Invalid input: {ve.message}")
+        except ValueError as ve:
+            raise cherrypy.HTTPError(400, f"{ve.message}")
         except Exception as e:
             raise cherrypy.HTTPError(500, str(e))
 

@@ -1,6 +1,6 @@
 import pandas as pd
 
-from BaseAgent import BaseSensorAgent
+from .BaseAgent import BaseSensorAgent
 
 class ExampleAgent(BaseSensorAgent):
     """
