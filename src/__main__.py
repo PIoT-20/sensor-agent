@@ -2,6 +2,7 @@ from agents.ExampleAgent import ExampleAgent
 from agents.EUOSHANoiseAgent import EUOSHANoiseAgent
 from agents.EUOSHATemperatureAgent import EUOSHATemperatureAgent
 import json
+import cherrypy
 
 if __name__ == "__main__":
     agent = None
@@ -18,5 +19,7 @@ if __name__ == "__main__":
         agent = EUOSHATemperatureAgent()
     else:
         raise ValueError("Agent Type not recognized")
-    
+
+    cherrypy.config.update({'server.socket_host': '0.0.0.0'})
+
     agent.run()

@@ -1,5 +1,4 @@
 {
     "name": "sound-agent",
-    "shift_start_time": "08:00",
-    "shift_end_time": "16:00"
+    "agent-type": "EU-OSHA-noise"
 }
