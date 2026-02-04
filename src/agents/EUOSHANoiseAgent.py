@@ -19,9 +19,9 @@ class EUOSHANoiseAgent(BaseSensorAgent):
     def __init__(self) -> None:
         super().__init__()
 
-        self.SENSOR_DATA_SCHEMA["properties"]["readings"]["items"]["properties"]["value"]["required"] = ["dB"]
+        self.SENSOR_DATA_SCHEMA["properties"]["readings"]["items"]["properties"]["value"]["required"] = ["db"]
         self.SENSOR_DATA_SCHEMA["properties"]["readings"]["items"]["properties"]["value"]["properties"] = {
-            "dB": {"type": "number"}
+            "db": {"type": "number"}
         }
 
     def process_readings(self, readings: list) -> float:
@@ -49,7 +49,7 @@ class EUOSHANoiseAgent(BaseSensorAgent):
             raise ValueError("No readings during work hours")
 
         shift_readings_df = shift_readings_df.copy()
-        shift_readings_df['energy'] = 10 ** (shift_readings_df['dB'] / 10)
+        shift_readings_df['energy'] = 10 ** (shift_readings_df['db'] / 10)
 
         daily_exp_lvl_df = shift_readings_df \
             .groupby(shift_readings_df['timestamp'].dt.date) \

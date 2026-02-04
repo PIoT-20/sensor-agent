@@ -12,7 +12,7 @@ def test_process_readings_basic(agent):
     for ts in timestamps:
         readings.append({
             "timestamp": ts.isoformat(),
-            "value": {"dB": 85.0}
+            "value": {"db": 85.0}
         })
         
     result = agent.process_readings(readings)
@@ -27,7 +27,7 @@ def test_process_readings_outside_shift(agent):
     readings = [
         {
             "timestamp": "2023-10-22T12:00:00", # Sunday
-            "value": {"dB": 100.0}
+            "value": {"db": 100.0}
         }
     ]
     
@@ -43,12 +43,12 @@ def test_process_readings_low_exposure(agent):
     for ts, val in zip(timestamps, values):
         readings.append({
             "timestamp": ts.isoformat(),
-            "value": {"dB": val}
+            "value": {"db": val}
         })
         
     result = agent.process_readings(readings)
     
-    # The average energy will correspond to a dB value < 85
+    # The average energy will correspond to a db value < 85
     assert result < 1.0
 
 def test_process_readings_high_exposure(agent):
@@ -61,18 +61,18 @@ def test_process_readings_high_exposure(agent):
     for ts, val in zip(timestamps, values):
         readings.append({
             "timestamp": ts.isoformat(),
-            "value": {"dB": val}
+            "value": {"db": val}
         })
         
     result = agent.process_readings(readings)
     
-    # The average energy will correspond to a dB value > 85
+    # The average energy will correspond to a db value > 85
     assert result > 1.0
 
 def test_process_readings_calculation_accuracy(agent):
     # Specific calculation test to verify correctness
-    # Day 1: 80 dB, 90 dB
-    # Day 2: 85 dB, 85 dB
+    # Day 1: 80 db, 90 db
+    # Day 2: 85 db, 85 db
     
     # Day 1 (Mon)
     ts1 = ["2023-10-23 10:00:00", "2023-10-23 11:00:00"]
@@ -86,7 +86,7 @@ def test_process_readings_calculation_accuracy(agent):
     for t, v in zip(ts1 + ts2, val1 + val2):
         readings.append({
             "timestamp": t,
-            "value": {"dB": v}
+            "value": {"db": v}
         })
         
     # Calculation:
@@ -94,7 +94,7 @@ def test_process_readings_calculation_accuracy(agent):
     # Day 2 Energy Mean: (10^8.5 + 10^8.5) / 2 = 10^8.5 ~= 3.16228 * 10^8
     # Total Mean Energy: (5.5 + 3.16228) / 2 * 10^8 = 4.33114 * 10^8
     # Leq = 10 * log10(4.33114 * 10^8) = 80 + 10 * log10(4.33114) 
-    #     = 80 + 6.366 = 86.366 dB
+    #     = 80 + 6.366 = 86.366 db
     # Ratio = 86.366 / 85 ~= 1.01607
     
     result = agent.process_readings(readings)

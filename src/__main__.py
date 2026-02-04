@@ -20,6 +20,6 @@ if __name__ == "__main__":
     else:
         raise ValueError("Agent Type not recognized")
 
-    cherrypy.config.update({'server.socket_host': '0.0.0.0'})
+    cherrypy.config.update({'server.socket_host': '0.0.0.0', "server.socket_port": config.get("port", 8083)})
 
     agent.run()

@@ -21,7 +21,6 @@ def test_base_agent_creation(agent):
     assert isinstance(agent, BaseSensorAgent)
 
 def test_post_valid_data(agent):
-    # Mock cherrypy.request
     cherrypy.request = MagicMock()
     cherrypy.request.json = {
         "readings": [
@@ -29,14 +28,6 @@ def test_post_valid_data(agent):
             {"timestamp": "2023-10-23T11:00:00", "value": {"v": 20.0}}
         ]
     }
-    
-    # We need to bypass the schema validation or mock it, 
-    # but BaseSensorAgent defines SENSOR_DATA_SCHEMA.
-    # The default schema expects "value" to be an object.
-    # Our MockAgent doesn't modify the schema, so it uses the base one.
-    # Base schema: value is object.
-    # Our input: value is {"v": ...}, which is an object.
-    # So validation should pass.
     
     result = agent.POST()
     assert result == {'quality_index': 15.0}

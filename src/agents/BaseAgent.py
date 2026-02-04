@@ -40,9 +40,6 @@ class BaseSensorAgent(ABC):
             'request.show_tracebacks': False,
             'error_page.default': lambda status, message, traceback, version: message
             },
-            '/api': {
-            'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
-            }
         }
         cherrypy.tree.mount(self, '/process_readings', cherrypy_conf)
 
@@ -54,6 +51,7 @@ class BaseSensorAgent(ABC):
         """Registers the agent within the IoT platform."""
         pass
 
+    @cherrypy.expose
     @cherrypy.tools.json_out() # type: ignore
     @cherrypy.tools.json_in() # type: ignore
     def POST(self, *uri, **params):
@@ -65,10 +63,13 @@ class BaseSensorAgent(ABC):
             return {'quality_index': ret}
         
         except ValidationError as ve:
+            print(f"Validation Error: {ve.message}")
             raise cherrypy.HTTPError(400, f"Invalid input: {ve.message}")
         except ValueError as ve:
+            print(f"Value Error: {ve}")
             raise cherrypy.HTTPError(400, f"{ve.message}")
         except Exception as e:
+            print(f"Processing Error: {str(e)}")
             raise cherrypy.HTTPError(500, str(e))
 
     @abstractmethod
