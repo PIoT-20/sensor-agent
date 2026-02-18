@@ -1,17 +1,15 @@
-from agents.ExampleAgent import ExampleAgent
 from agents.EUOSHANoiseAgent import EUOSHANoiseAgent
 from agents.EUOSHATemperatureAgent import EUOSHATemperatureAgent
 import json
 import cherrypy
+import os
 
 if __name__ == "__main__":
     agent = None
-    config = {}
 
-    with open("config.json", 'r') as file:
-        config = json.load(file)
-
-    agent_type = config.get("agent-type")
+    agent_type = os.getenv("AGENT_TYPE")
+    if not agent_type:
+        raise ValueError("AGENT_TYPE environment variable not set")
 
     if agent_type == "EU-OSHA-noise":
         agent = EUOSHANoiseAgent()
@@ -19,7 +17,5 @@ if __name__ == "__main__":
         agent = EUOSHATemperatureAgent()
     else:
         raise ValueError("Agent Type not recognized")
-
-    cherrypy.config.update({'server.socket_host': '0.0.0.0', "server.socket_port": config.get("port", 8083)})
 
     agent.run()

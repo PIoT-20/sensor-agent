@@ -3,3 +3,4 @@ pandas
 numpy
 jsonschema
 paho-mqtt
+requests

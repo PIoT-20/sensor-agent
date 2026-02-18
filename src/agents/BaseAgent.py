@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any
-import json
+import requests as req
 import cherrypy
 import os
 from jsonschema import validate, ValidationError
@@ -32,6 +32,18 @@ class BaseSensorAgent(ABC):
     exposed = True
 
     def __init__(self) -> None:
+        self.agent_type = os.getenv("AGENT_TYPE")
+        if not self.agent_type:
+            raise ValueError("AGENT_TYPE environment variable not set")
+        
+        self.agent_address = os.getenv("AGENT_ADDRESS")
+        if not self.agent_address:
+            raise ValueError("AGENT_ADDRESS environment variable not set")
+        
+        self.catalog = os.getenv("CATALOG_ADDRESS")
+        if not self.catalog:
+            raise ValueError("CATALOG_ADDRESS environment variable not set")
+
         cherrypy_conf={
             '/':{
             'request.dispatch':cherrypy.dispatch.MethodDispatcher(),
@@ -41,15 +53,24 @@ class BaseSensorAgent(ABC):
             'error_page.default': lambda status, message, traceback, version: message
             },
         }
+        cherrypy.config.update({'server.socket_host': '0.0.0.0', "server.socket_port": 8080})
         cherrypy.tree.mount(self, '/process_readings', cherrypy_conf)
 
     def run(self) -> None:
         cherrypy.engine.start()
         cherrypy.engine.block()
+
+        self.register()
     
     def register(self) -> None:
-        """Registers the agent within the IoT platform."""
-        pass
+        data = {
+            "service_type": "agent",
+            "address": self.agent_address,
+            "description": f"Agent for processing sensor data of type {self.agent_type}",
+            "agent_type": self.agent_type
+        }
+
+        req.post(f"http://{self.catalog}/service", json=data)
 
     @cherrypy.expose
     @cherrypy.tools.json_out() # type: ignore

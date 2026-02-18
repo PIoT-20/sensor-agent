@@ -13,7 +13,6 @@ COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Copy app files
-COPY config.json /app/config.json
 COPY src/ /app/src/
 
 EXPOSE 8080
