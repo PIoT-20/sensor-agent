@@ -12,7 +12,7 @@ class MockAgent(BaseSensorAgent):
 
 @pytest.fixture
 def agent():
-    agent = MockAgent()
+    agent = MockAgent("mock-agent", "http://localhost:8080", "http://catalog:8080")
     # We need to mock cherrypy.request.json since POST accesses it directly
     return agent
 

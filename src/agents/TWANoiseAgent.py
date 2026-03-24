@@ -16,8 +16,8 @@ class TWANoiseAgent(BaseSensorAgent):
 
     NEL_DB_THRESHOLD = 85
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, agent_type: str, agent_address: str, catalog_address: str) -> None:
+        super().__init__(agent_type, agent_address, catalog_address)
 
         self.SENSOR_DATA_SCHEMA["properties"]["readings"]["items"]["properties"]["value"]["required"] = ["db"]
         self.SENSOR_DATA_SCHEMA["properties"]["readings"]["items"]["properties"]["value"]["properties"] = {

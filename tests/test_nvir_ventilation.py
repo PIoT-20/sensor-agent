@@ -5,7 +5,7 @@ from agents.NVIRVentlationAgent import NVIRVentlationAgent
 
 @pytest.fixture
 def agent():
-    return NVIRVentlationAgent()
+    return NVIRVentlationAgent("nvir-ventilation", "http://localhost:8080", "http://catalog:8080")
 
 
 # Standard calibration conditions — calibration is identity at these values

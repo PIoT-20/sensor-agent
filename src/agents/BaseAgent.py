@@ -31,18 +31,17 @@ class BaseSensorAgent(ABC):
 
     exposed = True
 
-    def __init__(self) -> None:
-        self.agent_type = os.getenv("AGENT_TYPE")
+    def __init__(self, agent_type: str, agent_address: str, catalog_address: str) -> None:
+        self.agent_type = agent_type
+        self.agent_address = agent_address
+        self.catalog = catalog_address
+
         if not self.agent_type:
-            raise ValueError("AGENT_TYPE environment variable not set")
-        
-        self.agent_address = os.getenv("AGENT_ADDRESS")
+            raise ValueError("Agent type must be specified")
         if not self.agent_address:
-            raise ValueError("AGENT_ADDRESS environment variable not set")
-        
-        self.catalog = os.getenv("CATALOG_ADDRESS")
+            raise ValueError("Agent address must be specified")
         if not self.catalog:
-            raise ValueError("CATALOG_ADDRESS environment variable not set")
+            raise ValueError("Catalog address must be specified")
 
         cherrypy_conf={
             '/':{

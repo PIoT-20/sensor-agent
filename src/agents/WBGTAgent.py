@@ -23,9 +23,9 @@ class WBGTAgent(BaseSensorAgent):
     T_LIMIT = 25.0 # WBGT limit in °C according to EU (OSH) guidelines
     ALPHA = 0.4  # Weighting factor for average vs 95th percentile in final score aggregation
     
-    def __init__(self) -> None:
-        super().__init__()
-        
+    def __init__(self, agent_type: str, agent_address: str, catalog_address: str) -> None:
+        super().__init__(agent_type, agent_address, catalog_address)
+
         self.SENSOR_DATA_SCHEMA["properties"]["readings"]["items"]["properties"]["value"]["required"] = ["dB"]
         self.SENSOR_DATA_SCHEMA["properties"]["readings"]["items"]["properties"]["value"]["properties"] = {
             "Tnw": {"type": "number"},

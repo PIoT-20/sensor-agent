@@ -6,7 +6,7 @@ from agents.TWANoiseAgent import TWANoiseAgent
 
 @pytest.fixture
 def agent():
-    return TWANoiseAgent()
+    return TWANoiseAgent("TWA-noise", "http://localhost:8080", "http://catalog:8080")
 
 
 def _make_readings(timestamps, db_values):

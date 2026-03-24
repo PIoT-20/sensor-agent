@@ -5,7 +5,7 @@ from agents.WBGTAgent import WBGTAgent
 
 @pytest.fixture
 def agent():
-    return WBGTAgent()
+    return WBGTAgent("WBGT", "http://localhost:8080", "http://catalog:8080")
 
 
 def _make_readings(timestamps, tnw_values, tg_values):
