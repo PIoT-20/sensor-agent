@@ -1,13 +1,10 @@
-from agents.TWANoiseAgent import TWANoiseAgent
-from agents.WBGTAgent import WBGTAgent
-from agents.NVIRVentlationAgent import NVIRVentilationAgent
 import json
 import cherrypy
 import os
+from AgentConnector import AgentConnector
+from agents.AgentFactory import AgentFactory
 
 if __name__ == "__main__":
-    agent = None
-
     agent_type = os.getenv("AGENT_TYPE")
     if not agent_type:
         raise ValueError("AGENT_TYPE environment variable not set")
@@ -21,14 +18,6 @@ if __name__ == "__main__":
         raise ValueError("AGENT_ADDRESS environment variable not set")
         
 
-    if agent_type == "TWA-noise":
-        agent = TWANoiseAgent(agent_type, agent_address, catalog_address)
-    elif agent_type == "WBGT":
-        agent = WBGTAgent(agent_type, agent_address, catalog_address)
-    elif agent_type == "NVIR-ventilation":
-        agent = NVIRVentilationAgent(agent_type, agent_address, catalog_address)
-
-    else:
-        raise ValueError("Agent Type not recognized")
-
-    agent.run()
+    agent = AgentFactory.create_agent(agent_type)
+    connector = AgentConnector(agent_type=agent_type, agent_address=agent_address, catalog_address=catalog_address, agent=agent)
+    connector.run()

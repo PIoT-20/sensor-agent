@@ -1,9 +1,9 @@
 import pandas as pd
 import numpy as np
 
-from .BaseAgent import BaseSensorAgent
+from .AgentInterface import AgentInterface
 
-class WBGTAgent(BaseSensorAgent):
+class WBGTAgent(AgentInterface):
     """
     Processes readings from 2 different temperature sensors to calculate the Wet Bulb Globe Temperature (WBGT) index, 
     which is a composite temperature used to estimate the effect of temperature, humidity, wind speed and solar 
@@ -20,23 +20,22 @@ class WBGTAgent(BaseSensorAgent):
     The final score is the average of the daily WSI scores across all days in the window.
     """
 
-    T_LIMIT = 25.0 # WBGT limit in °C according to EU (OSH) guidelines
-    ALPHA = 0.4  # Weighting factor for average vs 95th percentile in final score aggregation
-    
-    def __init__(self, agent_type: str, agent_address: str, catalog_address: str) -> None:
-        super().__init__(agent_type, agent_address, catalog_address)
-
-        self.SENSOR_DATA_SCHEMA["properties"]["readings"]["items"]["properties"]["value"]["required"] = ["dB"]
-        self.SENSOR_DATA_SCHEMA["properties"]["readings"]["items"]["properties"]["value"]["properties"] = {
+    READINGS_VALUE_SCHEMA = {
+        "type": "object",
+        "required": ["Tnw", "Tg"],
+        "properties": {
             "Tnw": {"type": "number"},
             "Tg": {"type": "number"}
         }
+    }
 
-    def process_readings(self, readings: list) -> float:
-        if not readings:
+    T_LIMIT = 25.0 # WBGT limit in °C according to EU (OSH) guidelines
+    ALPHA = 0.4  # Weighting factor for average vs 95th percentile in final score aggregation
+
+    def process_readings(self, readings_df: pd.DataFrame) -> float:
+        if readings_df.empty:
             raise ValueError("No readings provided.")
 
-        readings_df = pd.DataFrame(readings)
         readings_df['timestamp'] = pd.to_datetime(readings_df['timestamp'])
         readings_df['date'] = readings_df['timestamp'].dt.date
 

@@ -2,9 +2,9 @@ import pandas as pd
 import numpy as np
 from functools import reduce
 
-from .BaseAgent import BaseSensorAgent
+from .AgentInterface import AgentInterface
 
-class TWANoiseAgent(BaseSensorAgent):    
+class TWANoiseAgent(AgentInterface):    
     """
     Processes readings from noise sensor to compute the daily noise exposure level (NEL)
         - NEL is calculated as the 8-hour time-weighted average (TWA) of the noise levels during work hours (9AM-6PM, Monday-Friday).
@@ -14,24 +14,19 @@ class TWANoiseAgent(BaseSensorAgent):
     The limit for TWA is set at 85dB, which is the threshold for noise-induced hearing loss according to EU (OSH) guidelines.
     """
 
-    NEL_DB_THRESHOLD = 85
-
-    def __init__(self, agent_type: str, agent_address: str, catalog_address: str) -> None:
-        super().__init__(agent_type, agent_address, catalog_address)
-
-        self.SENSOR_DATA_SCHEMA["properties"]["readings"]["items"]["properties"]["value"]["required"] = ["db"]
-        self.SENSOR_DATA_SCHEMA["properties"]["readings"]["items"]["properties"]["value"]["properties"] = {
+    READINGS_VALUE_SCHEMA = {
+        "type": "object",
+        "required": ["db"],
+        "properties": {
             "db": {"type": "number"}
         }
+    }
 
-    def process_readings(self, readings: list) -> float:
-        if not readings:
+    NEL_DB_THRESHOLD = 85
+
+    def process_readings(self, readings_df: pd.DataFrame) -> float:
+        if readings_df.empty:
             raise ValueError("No readings provided.")
-
-        readings_df = pd.DataFrame(readings)
-        readings_df['timestamp'] = pd.to_datetime(readings_df['timestamp'])
-        readings_df['date'] = readings_df['timestamp'].dt.date
-
         # Expand the 'value' dictionary into separate columns for db
         readings_df = pd.concat([readings_df.drop(['value'], axis=1), readings_df['value'].apply(pd.Series)], axis=1)
 

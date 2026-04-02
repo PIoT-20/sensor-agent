@@ -1,9 +1,9 @@
 import pandas as pd
 import numpy as np
 
-from .BaseAgent import BaseSensorAgent
+from .AgentInterface import AgentInterface
 
-class NVIRVentlationAgent(BaseSensorAgent):
+class NVIRVentilationAgent(AgentInterface):
     """
     Processes readings from 3 sensors (temperature, pressure, CO2) to calculate a ventilation score based on the
     Near-Field Ventilation Index Ratio (NVIR).
@@ -25,6 +25,16 @@ class NVIRVentlationAgent(BaseSensorAgent):
     The limit is based on the REHVA guidelines, with 1000 ppm CO2 as the threshold for poor ventilation.
     """
 
+    READINGS_VALUE_SCHEMA ={
+        "type": "object",
+        "required": ["T", "P", "CO2"],
+        "properties": {
+            "T": {"type": "number"},
+            "P": {"type": "number"},
+            "CO2": {"type": "number"}
+        }
+    }
+
     # Calibration constants (datasheet)
     P_CAL = 1013.25 
     T_CAL_K = 298.15
@@ -32,17 +42,6 @@ class NVIRVentlationAgent(BaseSensorAgent):
     PPM_LIMIT = 1000  # CO2 concentration above which ventilation is considered poor
     ALPHA = 0.4  # Weighting factor for average vs 95th percentile in final score aggregation
     
-    
-    def __init__(self, agent_type: str, agent_address: str, catalog_address: str) -> None:
-        super().__init__(agent_type, agent_address, catalog_address)
-        
-        self.SENSOR_DATA_SCHEMA["properties"]["readings"]["items"]["properties"]["value"]["required"] = ["dB"]
-        self.SENSOR_DATA_SCHEMA["properties"]["readings"]["items"]["properties"]["value"]["properties"] = {
-            "T": {"type": "number"},
-            "P": {"type": "number"},
-            "CO2": {"type": "number"},
-        }
-
     def adjust_readings(self, df):
         # 1. Sensor Calibration
         # Convert raw CO2 to ppm using the ideal gas law and datasheet calibration constants        
@@ -66,17 +65,10 @@ class NVIRVentlationAgent(BaseSensorAgent):
         
         return df
 
-    def process_readings(self, readings: list) -> float:
-        if not readings:
+    def process_readings(self, readings_df: pd.DataFrame) -> float:
+        if readings_df.empty:
             raise ValueError("No readings provided.")
-
-        readings_df = pd.DataFrame(readings)
-        readings_df['timestamp'] = pd.to_datetime(readings_df['timestamp'])
-        readings_df['date'] = readings_df['timestamp'].dt.date
-
-        # Expand the 'value' dictionary into separate columns for T, P, and CO2
-        readings_df = pd.concat([readings_df.drop(['value'], axis=1), readings_df['value'].apply(pd.Series)], axis=1)
-
+        
         # Apply adjustments to the raw readings (calibration, baseline correction, smoothing)
         adj_readings_df = self.adjust_readings(readings_df)
 
@@ -88,6 +80,8 @@ class NVIRVentlationAgent(BaseSensorAgent):
                (adj_readings_df['timestamp'].dt.dayofweek < 5)
         shift_adj_readings_df = adj_readings_df[mask]
 
+        if shift_adj_readings_df.empty:
+            raise ValueError("No readings during work shift")
 
         # Weighted Aggregation (average and 95th percentile)
         def calc_wsi(x):
