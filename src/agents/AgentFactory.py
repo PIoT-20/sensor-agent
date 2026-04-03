@@ -9,11 +9,11 @@ class AgentFactory:
     """
     @staticmethod
     def create_agent(agent_type) -> AgentInterface:
-        if agent_type == "NVIRVentilationAgent":
+        if agent_type == "NVIRVentilation":
             return NVIRVentilationAgent()
-        elif agent_type == "TWANoiseAgent":
+        elif agent_type == "TWANoise":
             return TWANoiseAgent()
-        elif agent_type == "WBGTAgent":
+        elif agent_type == "WBGT":
             return WBGTAgent()
         else:
             raise ValueError(f"Unknown agent type: {agent_type}")

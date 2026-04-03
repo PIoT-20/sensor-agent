@@ -58,7 +58,7 @@ class AgentConnector():
             'error_page.default': lambda status, message, traceback, version: message
             },
         }
-        cherrypy.config.update({'server.socket_host': '0.0.0.0', "server.socket_port": 8080})
+        cherrypy.config.update({'server.socket_host': '0.0.0.0', "server.socket_port": 8080, 'engine.autoreload.on': False})
         cherrypy.tree.mount(self, '/process_readings', cherrypy_conf)
 
         self.load_cfg()
@@ -140,7 +140,7 @@ class AgentConnector():
         readings_df['timestamp'] = pd.to_datetime(readings_df['timestamp'])
         readings_df['date'] = readings_df['timestamp'].dt.date
 
-        # Expand the 'value' dictionary into separate columns for Tnw and Tg
+        # Expand the 'value' dictionary into separate columns for each sensor reading
         readings_df = pd.concat([readings_df.drop(['value'], axis=1), readings_df['value'].apply(pd.Series)], axis=1)
 
         return self.agent.process_readings(readings_df)

@@ -36,12 +36,6 @@ class WBGTAgent(AgentInterface):
         if readings_df.empty:
             raise ValueError("No readings provided.")
 
-        readings_df['timestamp'] = pd.to_datetime(readings_df['timestamp'])
-        readings_df['date'] = readings_df['timestamp'].dt.date
-
-        # Expand the 'value' dictionary into separate columns for Tnw and Tg
-        readings_df = pd.concat([readings_df.drop(['value'], axis=1), readings_df['value'].apply(pd.Series)], axis=1)
-
         # Filter for work shift readings (9AM-6PM Monday-Friday)
         start_time = pd.to_datetime("09:00").time()
         end_time = pd.to_datetime("18:00").time()

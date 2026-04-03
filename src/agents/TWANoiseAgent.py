@@ -27,8 +27,6 @@ class TWANoiseAgent(AgentInterface):
     def process_readings(self, readings_df: pd.DataFrame) -> float:
         if readings_df.empty:
             raise ValueError("No readings provided.")
-        # Expand the 'value' dictionary into separate columns for db
-        readings_df = pd.concat([readings_df.drop(['value'], axis=1), readings_df['value'].apply(pd.Series)], axis=1)
 
         # Filter for work shift readings (9AM-6PM Monday-Friday)
         start_time = pd.to_datetime("09:00").time()
