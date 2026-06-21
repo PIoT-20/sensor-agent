@@ -64,10 +64,7 @@ class AgentConnector():
         self.load_cfg()
 
     def run(self) -> None:
-        if not self.cfg.get("service_id"):
-            self.register()
-        else:
-            self.update_registration()
+        self.register()
 
         cherrypy.engine.start()
         cherrypy.engine.block()
@@ -90,29 +87,14 @@ class AgentConnector():
 
         response = req.post(f"{self.catalog}/service", json=data)
 
-        if response.status_code == 201:
+        if response.status_code == 201 or response.status_code == 200:
             self.cfg["service_id"] = response.json().get("_id").get("$oid")
             self.save_cfg()
             print(f"Registered with id: {self.cfg['service_id']}")
 
         else:
             raise Exception(f"Failed to register service: {response.text}")
-
-    def update_registration(self) -> None:
-        data = {
-            "id": {"$oid": self.cfg["service_id"]},
-            "service_type": f"agent_{self.agent_type}",
-            "address": self.agent_address,
-            "description": f"Agent for processing sensor data of type {self.agent_type}"
-        }
-
-        response = req.put(f"{self.catalog}/service", json=data)
-
-        if response.status_code == 201:
-            print("Registration updated successfully. Id: ", self.cfg["service_id"])
-        else:
-            raise Exception(f"Failed to update registration: {response.text}")
-
+        
     @cherrypy.expose
     @cherrypy.tools.json_out() # type: ignore
     @cherrypy.tools.json_in() # type: ignore
@@ -137,7 +119,7 @@ class AgentConnector():
 
     def calculate_quality_index(self, readings) -> float:
         readings_df = pd.DataFrame(readings)
-        readings_df['timestamp'] = pd.to_datetime(readings_df['timestamp'])
+        readings_df['timestamp'] = pd.to_datetime(readings_df['timestamp'], utc=True)
         readings_df['date'] = readings_df['timestamp'].dt.date
 
         # Expand the 'value' dictionary into separate columns for each sensor reading
