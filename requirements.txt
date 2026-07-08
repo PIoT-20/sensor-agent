@@ -1,0 +1,6 @@
+CherryPy==18.8.0
+pandas
+numpy
+jsonschema
+paho-mqtt
+requests
