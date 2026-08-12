@@ -1,7 +1,8 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from .AgentInterface import AgentInterface
+
 
 class NVIRVentilationAgent(AgentInterface):
     """
@@ -13,11 +14,11 @@ class NVIRVentilationAgent(AgentInterface):
         - Pressure (P): Air pressure in hPa
         - CO2 concentration (CO2): raw CO2 concentration in ppm
 
-    The raw CO2 reading is adjusted using temperature and pressure to account for sensor calibration and environmental 
+    The raw CO2 reading is adjusted using temperature and pressure to account for sensor calibration and environmental
     factors, following the ideal gas law.
     The readings are then adjusted for sensor shifts (using daily baselines), and smoothed to reduce noise.
 
-    The daily WSI (workplace stress index) is calculated as a weighted average between the average CO2 level and the 
+    The daily WSI (workplace stress index) is calculated as a weighted average between the average CO2 level and the
     95th percentile during work hours (9AM-6PM, Monday-Friday), to capture both typical and worst-case conditions.
     The index is normalized by the PPM limit
     The final score is the average of the daily WSI scores across all days in the window.
@@ -25,59 +26,58 @@ class NVIRVentilationAgent(AgentInterface):
     The limit is based on the REHVA guidelines, with 1000 ppm CO2 as the threshold for poor ventilation.
     """
 
-    READINGS_VALUE_SCHEMA ={
+    READINGS_VALUE_SCHEMA = {
         "type": "object",
         "required": ["T", "P", "CO2"],
         "properties": {
             "T": {"type": "number"},
             "P": {"type": "number"},
-            "CO2": {"type": "number"}
-        }
+            "CO2": {"type": "number"},
+        },
     }
 
     # Calibration constants (datasheet)
-    P_CAL = 1013.25 
+    P_CAL = 1013.25
     T_CAL_K = 298.15
 
     PPM_LIMIT = 1000  # CO2 concentration above which ventilation is considered poor
     ALPHA = 0.4  # Weighting factor for average vs 95th percentile in final score aggregation
-    
+
     def adjust_readings(self, df):
         # 1. Sensor Calibration
-        # Convert raw CO2 to ppm using the ideal gas law and datasheet calibration constants        
-        df['Tk'] = df['T'] + 273.15
-        df['CO2_adj'] = df['CO2'] * (self.P_CAL / df['P']) * (df['Tk'] / self.T_CAL_K)
-        
+        # Convert raw CO2 to ppm using the ideal gas law and datasheet calibration constants
+        df["Tk"] = df["T"] + 273.15
+        df["CO2_adj"] = df["CO2"] * (self.P_CAL / df["P"]) * (df["Tk"] / self.T_CAL_K)
+
         # 2. Daily Daily Baseline Correction (ABC)
-        # The sensor drift and environmental factors can cause the baseline ("fresh air") CO2 to shift over time. 
+        # The sensor drift and environmental factors can cause the baseline ("fresh air") CO2 to shift over time.
         # To correct for this, we use a daily ABC:
-        # 1) Get 5th percentile of CO2 each day to represent 'fresh air' 
+        # 1) Get 5th percentile of CO2 each day to represent 'fresh air'
         # 2) Shift the baseline so the daily 'clean air' is ~400ppm (normal outdoor level)
-        daily_min = df \
-                    .groupby('date') \
-                    ['CO2_adj'] \
-                    .transform(lambda x: x.quantile(0.05))
-        
-        df['CO2_adj'] = df['CO2_adj'] - (daily_min - 400)
-        
+        daily_min = df.groupby("date")["CO2_adj"].transform(lambda x: x.quantile(0.05))
+
+        df["CO2_adj"] = df["CO2_adj"] - (daily_min - 400)
+
         # 3. Smoothing (EWMA) - Low pass filter to reduce noise
-        df['CO2_adj'] = df['CO2_adj'].ewm(alpha=0.1).mean()
-        
+        df["CO2_adj"] = df["CO2_adj"].ewm(alpha=0.1).mean()
+
         return df
 
     def process_readings(self, readings_df: pd.DataFrame) -> float:
         if readings_df.empty:
             raise ValueError("No readings provided.")
-        
+
         # Apply adjustments to the raw readings (calibration, baseline correction, smoothing)
         adj_readings_df = self.adjust_readings(readings_df)
 
         # Filter for work shift readings (9AM-6PM Monday-Friday)
         start_time = pd.to_datetime("09:00").time()
         end_time = pd.to_datetime("18:00").time()
-        mask = (adj_readings_df['timestamp'].dt.time >= start_time) & \
-               (adj_readings_df['timestamp'].dt.time <= end_time) & \
-               (adj_readings_df['timestamp'].dt.dayofweek < 5)
+        mask = (
+            (adj_readings_df["timestamp"].dt.time >= start_time)
+            & (adj_readings_df["timestamp"].dt.time <= end_time)
+            & (adj_readings_df["timestamp"].dt.dayofweek < 5)
+        )
         shift_adj_readings_df = adj_readings_df[mask]
 
         if shift_adj_readings_df.empty:
@@ -89,13 +89,10 @@ class NVIRVentilationAgent(AgentInterface):
             p95 = x.quantile(0.95)
             wsi = ((self.ALPHA * avg) + ((1 - self.ALPHA) * p95)) / self.PPM_LIMIT
             return wsi
-        
+
         # Group CO2 adjusted readings by date, calculate daily WSI, and then average across days for final score
-        wsi_global_score = shift_adj_readings_df \
-                            .groupby('date') \
-                            ["CO2_adj"] \
-                            .apply(calc_wsi) \
-                            .mean()
+        wsi_global_score = (
+            shift_adj_readings_df.groupby("date")["CO2_adj"].apply(calc_wsi).mean()
+        )
 
         return wsi_global_score
-        

@@ -1,14 +1,14 @@
 import json
-import requests as req
-import cherrypy
 import os
-from jsonschema import validate, ValidationError
 
-from agents.AgentInterface import AgentInterface
-
+import cherrypy
 import pandas as pd
+import requests as req
+from agents.AgentInterface import AgentInterface
+from jsonschema import ValidationError, validate
 
-class AgentConnector():
+
+class AgentConnector:
     """
     The core agent that handles connections, loops, and error handling.
     Developers must inherit from this class.
@@ -19,22 +19,28 @@ class AgentConnector():
         "required": ["readings"],
         "properties": {
             "readings": {
-                "type": "array", 
+                "type": "array",
                 "items": {
-                    "type": "object", 
+                    "type": "object",
                     "required": ["timestamp", "value"],
                     "properties": {
                         "timestamp": {"type": "string", "format": "date-time"},
                         "value": {"type": "object"},
-                    }
-                }
+                    },
+                },
             }
-        }
+        },
     }
 
     exposed = True
 
-    def __init__(self, agent_type: str, agent_address: str, catalog_address: str, agent: AgentInterface) -> None:
+    def __init__(
+        self,
+        agent_type: str,
+        agent_address: str,
+        catalog_address: str,
+        agent: AgentInterface,
+    ) -> None:
         self.agent_type = agent_type
         self.agent_address = agent_address
         self.catalog = catalog_address
@@ -47,19 +53,29 @@ class AgentConnector():
         if not self.catalog:
             raise ValueError("Catalog address must be specified")
 
-        self.SENSOR_DATA_SCHEMA["properties"]["readings"]["items"]["properties"]["value"] = agent.get_readings_schema()
+        self.SENSOR_DATA_SCHEMA["properties"]["readings"]["items"]["properties"][
+            "value"
+        ] = agent.get_readings_schema()
 
-        cherrypy_conf={
-            '/':{
-            'request.dispatch':cherrypy.dispatch.MethodDispatcher(),
-            'tools.staticdir.root': os.path.abspath(os.getcwd()),
-            'tools.sessions.on': True,
-            'request.show_tracebacks': False,
-            'error_page.default': lambda status, message, traceback, version: message
+        cherrypy_conf = {
+            "/": {
+                "request.dispatch": cherrypy.dispatch.MethodDispatcher(),
+                "tools.staticdir.root": os.path.abspath(os.getcwd()),
+                "tools.sessions.on": True,
+                "request.show_tracebacks": False,
+                "error_page.default": lambda status, message, traceback, version: (
+                    message
+                ),
             },
         }
-        cherrypy.config.update({'server.socket_host': '0.0.0.0', "server.socket_port": 8080, 'engine.autoreload.on': False})
-        cherrypy.tree.mount(self, '/process_readings', cherrypy_conf)
+        cherrypy.config.update(
+            {
+                "server.socket_host": "0.0.0.0",
+                "server.socket_port": 8080,
+                "engine.autoreload.on": False,
+            }
+        )
+        cherrypy.tree.mount(self, "/process_readings", cherrypy_conf)
 
         self.load_cfg()
 
@@ -94,19 +110,19 @@ class AgentConnector():
 
         else:
             raise Exception(f"Failed to register service: {response.text}")
-        
+
     @cherrypy.expose
-    @cherrypy.tools.json_out() # type: ignore
-    @cherrypy.tools.json_in() # type: ignore
+    @cherrypy.tools.json_out()  # type: ignore
+    @cherrypy.tools.json_in()  # type: ignore
     def POST(self):
         try:
             validate(instance=cherrypy.request.json, schema=self.SENSOR_DATA_SCHEMA)
-            readings = cherrypy.request.json.get('readings', [])
-            
+            readings = cherrypy.request.json.get("readings", [])
+
             ret = self.calculate_quality_index(readings)
 
-            return {'quality_index': ret}
-        
+            return {"quality_index": ret}
+
         except ValidationError as ve:
             print(f"Validation Error: {ve.message}")
             raise cherrypy.HTTPError(400, f"Invalid input: {ve.message}")
@@ -119,10 +135,16 @@ class AgentConnector():
 
     def calculate_quality_index(self, readings) -> float:
         readings_df = pd.DataFrame(readings)
-        readings_df['timestamp'] = pd.to_datetime(readings_df['timestamp'], utc=True)
-        readings_df['date'] = readings_df['timestamp'].dt.date
+        readings_df["timestamp"] = pd.to_datetime(readings_df["timestamp"], utc=True)
+        readings_df["date"] = readings_df["timestamp"].dt.date
 
         # Expand the 'value' dictionary into separate columns for each sensor reading
-        readings_df = pd.concat([readings_df.drop(['value'], axis=1), readings_df['value'].apply(pd.Series)], axis=1)
+        readings_df = pd.concat(
+            [
+                readings_df.drop(["value"], axis=1),
+                readings_df["value"].apply(pd.Series),
+            ],
+            axis=1,
+        )
 
         return self.agent.process_readings(readings_df)
